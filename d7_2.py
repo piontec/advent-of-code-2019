@@ -1,5 +1,11 @@
 from typing import List
 from itertools import permutations
+from enum import IntEnum
+
+
+class StopType(IntEnum):
+    STOP = 0
+    OUTPUT =1
 
 
 class CPU:
@@ -41,8 +47,9 @@ class CPU:
         raise AssertionError(str.format(
             "Unknown arg mode: {}", arg_modes[offset]))
 
-    def run(self) -> List[int]:
-        while self._code[self._ip] != 99:
+    def run(self, stop: StopType = StopType.STOP) -> StopType:
+        outputSet = False
+        while not(self._code[self._ip] == 99 or (stop == StopType.OUTPUT and outputSet)):
             opcode, no_args, modes = self._parse_instruction()
             if opcode == 1 or opcode == 2:
                 assert modes[2] == 0
@@ -60,6 +67,7 @@ class CPU:
                     self.outputs.append(self._code[self._code[self._ip + 1]])
                 elif modes[0] == 1:
                     self.outputs.append(self._code[self._ip + 1])
+                outputSet = True
             elif opcode == 5 or opcode == 6:
                 val = self._get_argument(modes, 0)
                 if (opcode == 5 and val != 0) or (opcode == 6 and val == 0):
@@ -76,7 +84,9 @@ class CPU:
                                  self._code[self._ip]))
                 return
             self._ip += no_args + 1
-        return self.outputs
+        if stop == StopType.STOP:
+            return StopType.STOP
+        return StopType.OUTPUT if outputSet else StopType.STOP
 
 
 def find_max(strcode: str) -> int:
@@ -87,7 +97,8 @@ def find_max(strcode: str) -> int:
         in_val = 0
         for c in cb:
             cpu = CPU(strcode, [c, in_val])
-            in_val = cpu.run()[0]
+            assert cpu.run() == StopType.STOP
+            in_val = cpu.outputs[0]
         if in_val > max_val:
             max_val = in_val
             best_cb = cb
