@@ -5,7 +5,7 @@ from enum import IntEnum
 
 class StopType(IntEnum):
     STOP = 0
-    OUTPUT =1
+    OUTPUT = 1
 
 
 class CPU:
@@ -90,22 +90,34 @@ class CPU:
 
 
 def find_max(strcode: str) -> int:
-    comb = permutations(range(0, 5))
+    comb = permutations(range(5, 10))
     max_val = 0
     best_cb = -1
     for cb in comb:
         in_val = 0
+        cpus: List[CPU] = []
         for c in cb:
-            cpu = CPU(strcode, [c, in_val])
-            assert cpu.run() == StopType.STOP
-            in_val = cpu.outputs[0]
-        if in_val > max_val:
-            max_val = in_val
+            cpus.append(CPU(strcode, [c]))
+        current_cpu = 0
+        current_input = 0
+        cpus_stopped = 5 * [False]
+        while not all(cpus_stopped):
+            if cpus_stopped[current_cpu]:
+                continue
+            cpus[current_cpu].inputs.append(current_input)
+            st = cpus[current_cpu].run(stop=StopType.OUTPUT)
+            if st == StopType.STOP:
+                cpus_stopped[current_cpu] = True
+            current_input = cpus[current_cpu].outputs[-1]
+            current_cpu = (current_cpu + 1) % 5
+        if cpus[4].outputs[-1] > max_val:
+            max_val = cpus[4].outputs[-1]
             best_cb = cb
     return max_val
 
 
-assert find_max("3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0") == 43210
+assert find_max(
+    "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5") == 139629729
 with open("i7.txt") as f:
     lines = f.readlines()
 res = find_max(lines[0])
